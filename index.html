@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iMolodec | Ремонт техники Apple</title>
+    <!-- Tailwind CSS (для красивого дизайна) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome (для иконок) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- AOS CSS (для анимаций) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .modal-open { overflow: hidden; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- ==========================================
+         БЛОК НАСТРОЕК (МЕНЯЙ ДАННЫЕ ЗДЕСЬ!)
+    =========================================== -->
+    <script>
+        const CONFIG = {
+            // Твои контакты
+            phone: "+38 (099) 123-45-67",
+            telegram: "@imolodec_support",
+            schedule: "Пн-Вс: 10:00 - 20:00",
+            
+            // Ссылка на Google Таблицу (объяснение как получить - ниже)
+            googleSheetUrl: "ТВОЯ_ССЫЛКА_ИЗ_GOOGLE_APPS_SCRIPT",
+
+            // Устройства и цены
+            devices: [
+                {
+                    id: "iphone", name: "iPhone", icon: "fa-mobile-screen",
+                    models: [
+                        { name: "iPhone 15 Pro Max", prices: { "Замена дисплея": "15 000 грн", "Замена АКБ": "3 500 грн", "Чистка динамиков": "500 грн" } },
+                        { name: "iPhone 14 Pro", prices: { "Замена дисплея": "12 000 грн", "Замена АКБ": "2 800 грн", "Замена стекла камеры": "1 200 грн" } }
+                    ]
+                },
+                {
+                    id: "ipad", name: "iPad", icon: "fa-tablet-screen-button",
+                    models: [
+                        { name: "iPad Pro 12.9 (M2)", prices: { "Замена стекла": "8 000 грн", "Замена АКБ": "4 500 грн" } },
+                        { name: "iPad Air 5", prices: { "Замена дисплея": "6 500 грн", "Замена гнезда зарядки": "2 000 грн" } }
+                    ]
+                },
+                {
+                    id: "macbook", name: "MacBook", icon: "fa-laptop",
+                    models: [
+                        { name: "MacBook Pro 14 (M2)", prices: { "Замена матрицы": "18 000 грн", "Чистка от пыли": "1 500 грн", "Замена клавиатуры": "4 000 грн" } }
+                    ]
+                },
+                {
+                    id: "watch", name: "Apple Watch", icon: "fa-stopwatch",
+                    models: [
+                        { name: "Apple Watch Ultra", prices: { "Замена стекла": "5 500 грн", "Замена АКБ": "2 500 грн" } },
+                        { name: "Apple Watch Series 8", prices: { "Замена экрана": "4 000 грн" } }
+                    ]
+                }
+            ]
+        };
+    </script>
+
+    <!-- Шапка сайта -->
+    <header class="glass fixed w-full top-0 z-40 border-b border-gray-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-black flex items-center gap-2">
+                <i class="fa-brands fa-apple text-3xl"></i> iMolodec
+            </div>
+            <div class="hidden md:flex gap-6 text-sm font-medium text-gray-600">
+                <span id="header-schedule"><i class="fa-regular fa-clock mr-1"></i></span>
+                <a href="#" id="header-phone" class="hover:text-blue-600 transition"><i class="fa-solid fa-phone mr-1"></i></a>
+                <a href="#" id="header-tg" class="hover:text-blue-500 transition"><i class="fa-brands fa-telegram mr-1"></i></a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Главный экран -->
+    <section class="pt-32 pb-20 px-4 text-center bg-gradient-to-b from-gray-100 to-white">
+        <div class="max-w-3xl mx-auto" data-aos="fade-up">
+            <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-6 tracking-tight">Ремонт Apple с умом</h1>
+            <p class="text-lg text-gray-600 mb-10">Быстро, качественно и с гарантией. Выберите ваше устройство, чтобы узнать стоимость.</p>
+        </div>
+    </section>
+
+    <!-- Список устройств -->
+    <section class="py-16 px-4">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="devices-container">
+            <!-- Устройства генерируются через JS -->
+        </div>
+    </section>
+
+    <!-- Модальное окно (Прайс + Заявка) -->
+    <div id="modal" class="fixed inset-0 bg-black/60 z-50 hidden opacity-0 transition-opacity duration-300 flex items-center justify-center px-4">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 class="text-2xl font-bold" id="modal-title">Прайс-лист</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-red-500 transition text-2xl">&times;</button>
+            </div>
+            
+            <div class="flex flex-col md:flex-row overflow-y-auto">
+                <!-- Прайс -->
+                <div class="w-full md:w-1/2 p-6 border-r border-gray-100">
+                    <h3 class="font-semibold text-gray-500 mb-4 uppercase text-sm tracking-wider">Выберите модель:</h3>
+                    <select id="model-select" class="w-full p-3 bg-gray-100 rounded-xl mb-6 outline-none focus:ring-2 ring-blue-500 border-none transition" onchange="renderPrices()"></select>
+                    
+                    <div id="prices-container" class="space-y-3">
+                        <!-- Цены генерируются тут -->
+                    </div>
+                </div>
+
+                <!-- Форма -->
+                <div class="w-full md:w-1/2 p-6 bg-blue-50/30">
+                    <h3 class="font-bold text-xl mb-6">Оставить заявку</h3>
+                    <form id="order-form" onsubmit="submitForm(event)" class="space-y-4">
+                        <input type="hidden" id="form-model" name="model">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Имя</label>
+                            <input type="text" name="name" required class="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 ring-blue-500 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Телефон</label>
+                            <input type="tel" name="phone" required class="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 ring-blue-500 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Опишите проблему</label>
+                            <textarea name="problem" rows="3" required class="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 ring-blue-500 outline-none transition resize-none"></textarea>
+                        </div>
+                        <button type="submit" id="submit-btn" class="w-full bg-black text-white font-semibold py-4 rounded-xl hover:bg-gray-800 transition shadow-lg transform active:scale-95">
+                            Отправить заявку
+                        </button>
+                        <p id="form-status" class="text-sm text-center hidden mt-2"></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AOS JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        // Инициализация анимаций
+        AOS.init({ duration: 800, once: true });
+
+        // Установка контактов
+        document.getElementById('header-schedule').innerHTML += CONFIG.schedule;
+        document.getElementById('header-phone').innerHTML += CONFIG.phone;
+        document.getElementById('header-phone').href = "tel:" + CONFIG.phone.replace(/[^0-9+]/g, '');
+        document.getElementById('header-tg').innerHTML += "Telegram";
+        document.getElementById('header-tg').href = "https://t.me/" + CONFIG.telegram.replace('@', '');
+
+        let currentDevice = null;
+
+        // Генерация карточек устройств
+        const container = document.getElementById('devices-container');
+        CONFIG.devices.forEach((dev, index) => {
+            container.innerHTML += `
+                <div data-aos="fade-up" data-aos-delay="${index * 100}" onclick="openModal('${dev.id}')" 
+                     class="bg-white rounded-3xl p-8 text-center cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-gray-100">
+                    <i class="${dev.icon} text-6xl text-gray-900 mb-6"></i>
+                    <h3 class="text-2xl font-semibold">${dev.name}</h3>
+                    <p class="text-blue-500 mt-2 font-medium">Смотреть прайс &rarr;</p>
+                </div>
+            `;
+        });
+
+        // Логика модального окна
+        const modal = document.getElementById('modal');
+        const modelSelect = document.getElementById('model-select');
+        
+        function openModal(deviceId) {
+            currentDevice = CONFIG.devices.find(d => d.id === deviceId);
+            document.getElementById('modal-title').innerText = `Ремонт ${currentDevice.name}`;
+            
+            // Заполняем селект моделей
+            modelSelect.innerHTML = '';
+            currentDevice.models.forEach((m, idx) => {
+                modelSelect.innerHTML += `<option value="${idx}">${m.name}</option>`;
+            });
+            
+            renderPrices();
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+            document.body.classList.add('modal-open');
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.classList.remove('modal-open');
+            }, 300);
+            document.getElementById('form-status').classList.add('hidden');
+            document.getElementById('order-form').reset();
+        }
+
+        function renderPrices() {
+            const modelIdx = modelSelect.value;
+            const model = currentDevice.models[modelIdx];
+            const pricesCont = document.getElementById('prices-container');
+            
+            // Обновляем скрытое поле формы, чтобы знать, на что заявка
+            document.getElementById('form-model').value = model.name;
+
+            pricesCont.innerHTML = '';
+            for (const [service, price] of Object.entries(model.prices)) {
+                pricesCont.innerHTML += `
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
+                        <span class="text-gray-700">${service}</span>
+                        <span class="font-bold text-black">${price}</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Отправка формы в Google Sheets
+        function submitForm(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const status = document.getElementById('form-status');
+            
+            if(!CONFIG.googleSheetUrl || CONFIG.googleSheetUrl === "ТВОЯ_ССЫЛКА_ИЗ_GOOGLE_APPS_SCRIPT") {
+                alert("Ошибка: Не настроена ссылка на Excel/Google Sheets в коде!");
+                return;
+            }
+
+            btn.innerText = "Отправка...";
+            btn.disabled = true;
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            data.date = new Date().toLocaleString('ru-RU');
+
+            fetch(CONFIG.googleSheetUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => {
+                e.target.reset();
+                status.innerText = "Заявка успешно отправлена! Мы свяжемся с вами.";
+                status.className = "text-sm text-center text-green-600 mt-4 block font-medium";
+                btn.innerText = "Отправить заявку";
+                btn.disabled = false;
+                setTimeout(closeModal, 3000);
+            }).catch(error => {
+                status.innerText = "Ошибка отправки. Напишите нам в Telegram.";
+                status.className = "text-sm text-center text-red-500 mt-4 block font-medium";
+                btn.innerText = "Отправить заявку";
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
